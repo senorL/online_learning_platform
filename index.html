@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>初等教育智能辅助平台</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans">
+    <div id="app" class="flex h-screen overflow-hidden">
+
+        <div v-if="!token" class="fixed inset-0 z-50 flex items-center justify-center bg-blue-600">
+            <div class="bg-white p-10 rounded-3xl shadow-2xl w-96 transform transition-all hover:scale-105">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-blue-700">在线学习平台</h2>
+                    <p class="text-slate-400 mt-2 italic">学-练-测-改 闭环系统</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="relative"><i class="fas fa-user absolute left-3 top-3.5 text-slate-300"></i>
+                        <input v-model="form.username" placeholder="用户名" class="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                    </div>
+                    <div class="relative"><i class="fas fa-lock absolute left-3 top-3.5 text-slate-300"></i>
+                        <input v-model="form.password" type="password" placeholder="密码" class="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                    </div>
+                    <button @click="login" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg">登录系统</button>
+                    <p class="text-xs text-slate-400 text-center mt-4">默认超管：admin / admin123</p>
+                </div>
+            </div>
+        </div>
+
+        <template v-else>
+            <aside class="w-64 bg-blue-900 text-white flex flex-col shadow-xl">
+                <div class="p-8 text-2xl font-black italic tracking-wider border-b border-blue-800">StudyHUB</div>
+                <nav class="flex-1 p-4 space-y-2 mt-4">
+                    <button v-for="tab in tabs" @click="currentTab = tab.id"
+                        :class="['w-full flex items-center p-4 rounded-2xl transition-all', currentTab === tab.id ? 'bg-blue-600 shadow-lg scale-105' : 'hover:bg-blue-800']">
+                        <i :class="['fas mr-4 w-5', tab.icon]"></i> {{ tab.name }}
+                    </button>
+                </nav>
+                <div class="p-6 text-xs text-blue-400 text-center">Version 1.0.0 (FastAPI + Vue3)</div>
+            </aside>
+
+            <div class="flex-1 flex flex-col">
+                <header class="h-20 bg-white shadow-sm flex items-center justify-between px-10 border-b border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-600">{{ tabs.find(t=>t.id==currentTab).name }}</h2>
+                    <div class="flex items-center gap-4">
+                        <div class="text-right">
+                            <p class="font-bold text-blue-600">{{ user.username }}</p>
+                            <p class="text-xs text-slate-400">初中部 · 学生</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black border-2 border-blue-500 shadow-inner">
+                            {{ user.username.charAt(0).toUpperCase() }}
+                        </div>
+                        <button @click="logout" class="ml-4 text-slate-300 hover:text-red-500"><i class="fas fa-power-off"></i></button>
+                    </div>
+                </header>
+
+                <main class="flex-1 overflow-y-auto p-10 bg-slate-50">
+
+                    <div v-if="currentTab === 'course'" class="space-y-8">
+                        <div class="grid grid-cols-4 gap-4">
+                            <button v-for="s in subjects" @click="changeSubject(s)"
+                                :class="['py-4 rounded-2xl font-bold transition-all shadow-sm', currentSubject==s ? 'bg-blue-600 text-white scale-105' : 'bg-white text-blue-600 hover:border-blue-400 border border-transparent']">
+                                {{s}}
+                            </button>
+                        </div>
+                        <div v-if="videoUrl" class="bg-white p-6 rounded-3xl shadow-xl aspect-video border border-slate-100 overflow-hidden">
+                            <iframe :src="videoUrl" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                    </div>
+
+                    <div v-if="currentTab === 'test'" class="max-w-3xl mx-auto space-y-6">
+                        <div v-for="(q, idx) in questions" :key="q.id" class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                            <div class="flex justify-between mb-4"><span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-bold">{{currentSubject}}</span></div>
+                            <p class="text-lg font-bold text-slate-700 leading-relaxed mb-6">{{idx+1}}. {{ q.content }}</p>
+                            <div class="grid grid-cols-2 gap-4">
+                                <button v-for="opt in ['A','B','C','D']" @click="submitAnswer(q.id, opt)"
+                                    class="text-left px-6 py-4 border rounded-2xl hover:bg-blue-50 hover:border-blue-400 transition-all font-medium">
+                                    <span class="text-blue-600 mr-3 font-black text-lg">{{opt}}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentTab === 'wrong'" class="grid grid-cols-2 gap-6">
+                        <div v-for="m in mistakes" :key="m.id" class="bg-white p-6 rounded-3xl border-l-8 border-red-500 shadow-sm relative overflow-hidden">
+                            <div class="absolute right-[-10px] top-[-10px] opacity-10 text-6xl text-red-500"><i class="fas fa-times-circle"></i></div>
+                            <p class="font-bold text-slate-800 mb-3">{{ m.content }}</p>
+                            <p class="text-red-500 font-bold bg-red-50 p-2 rounded-lg inline-block text-sm">解析：{{ m.answer }}</p>
+                        </div>
+                    </div>
+
+                    <div v-if="currentTab === 'heatmap'" class="bg-white p-12 rounded-3xl shadow-xl text-center">
+                        <h3 class="text-2xl font-bold text-slate-700 mb-10"><i class="fas fa-fire text-orange-500 mr-2"></i> 学习成就热力图</h3>
+                        <div class="flex flex-wrap gap-2 justify-center max-w-lg mx-auto bg-slate-50 p-6 rounded-3xl">
+                            <div v-for="day in 60" :key="day"
+                                :class="['w-6 h-6 rounded-md transition-all', getHeatColor(day)]"
+                                :title="getDayStr(day)">
+                            </div>
+                        </div>
+                        <p class="mt-8 text-slate-400 italic">颜色越深代表当日做题量越多，继续保持！</p>
+                    </div>
+                </main>
+            </div>
+        </template>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        const API = "http://127.0.0.1:8000";
+
+        createApp({
+            data() {
+                return {
+                    token: localStorage.getItem('token') || '',
+                    user: { username: localStorage.getItem('username') || '未登录' },
+                    form: { username: '', password: '' },
+                    currentTab: 'course', currentSubject: '数学', videoUrl: '',
+                    questions: [], heatmap: {}, mistakes: [],
+                    subjects: ['数学', '物理', '生物', '语文', '英语', '地理', '道法', '化学'],
+                    tabs: [
+                        { id: 'course', name: '课程学习', icon: 'fa-tv' },
+                        { id: 'test', name: '刷题挑战', icon: 'fa-keyboard' },
+                        { id: 'wrong', name: '错题收纳', icon: 'fa-folder-open' },
+                        { id: 'heatmap', name: '成就勋章', icon: 'fa-medal' }
+                    ]
+                }
+            },
+            mounted() { if(this.token) { this.syncData(); } },
+            methods: {
+                async login() {
+                    try {
+                        const res = await axios.post(`${API}/login`, this.form);
+                        this.token = res.data.access_token;
+                        this.user.username = res.data.username;
+                        localStorage.setItem('token', this.token);
+                        localStorage.setItem('username', this.user.username);
+                        this.syncData();
+                    } catch(e) { alert("身份校验失败，请检查账号密码"); }
+                },
+                logout() { localStorage.clear(); location.reload(); },
+                async syncData() {
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
+                    try {
+                        const hRes = await axios.get(`${API}/my/heatmap`); this.heatmap = hRes.data;
+                        const mRes = await axios.get(`${API}/my/mistakes`); this.mistakes = mRes.data;
+                        this.changeSubject(this.currentSubject);
+                    } catch(e) { this.logout(); }
+                },
+                async changeSubject(s) {
+                    this.currentSubject = s;
+                    const cRes = await axios.get(`${API}/courses/${s}`); this.videoUrl = cRes.data[0]?.video_url;
+                    const qRes = await axios.get(`${API}/questions/${s}`); this.questions = qRes.data;
+                },
+                async submitAnswer(qid, ans) {
+                    const res = await axios.post(`${API}/questions/submit`, { question_id: qid, user_answer: ans });
+                    if(res.data.is_correct) alert("🌟 完美！回答正确");
+                    else alert("💡 已自动整理至错题本");
+                    this.syncData();
+                },
+                getHeatColor(day) {
+                    const d = this.getDayStr(day);
+                    const c = this.heatmap[d] || 0;
+                    if(c === 0) return 'bg-slate-200';
+                    return c < 5 ? 'bg-blue-300' : 'bg-blue-600 shadow-md scale-110';
+                },
+                getDayStr(day) {
+                    const d = new Date(); d.setDate(d.getDate() - (60 - day));
+                    return d.toISOString().split('T')[0];
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
