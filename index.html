@@ -391,8 +391,15 @@
                 },
                 getDayStr(day) {
                     const d = new Date();
-                    d.setDate(d.getDate() - (371 - day));
-                    return d.toISOString().split('T')[0];
+                    const offset = 371 - day;
+                    d.setDate(d.getDate() - offset);
+
+                    //避免 UTC 时差问题
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const date = String(d.getDate()).padStart(2, '0');
+
+                    return `${year}-${month}-${date}`;
                 }
             }
         }).mount('#app');
