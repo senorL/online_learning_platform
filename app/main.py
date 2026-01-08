@@ -153,7 +153,8 @@ def login(credentials: schemas.UserCreate, db: Session = Depends(get_db)):
         "token_type": "bearer",
         "role": db_user.role,
         "username": db_user.username,
-        "grade": db_user.grade
+        "grade": db_user.grade,
+        "avatar": db_user.avatar
     }
 
 @app.put("/my/profile")

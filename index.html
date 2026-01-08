@@ -66,19 +66,18 @@
 
         <template v-else>
             <aside class="w-64 bg-blue-900 text-white flex flex-col shadow-xl">
-                <div class="p-8 text-2xl font-black italic tracking-wider border-b border-blue-800">StudyHUB</div>
+                <div class="p-8 text-2xl font-black italic tracking-wider border-b border-blue-800">在线学习平台</div>
                 <nav class="flex-1 p-4 space-y-2 mt-4">
-                    <button v-for="tab in tabs" @click="currentTab = tab.id"
+                    <button v-for="tab in visibleTabs" @click="currentTab = tab.id"
                         :class="['w-full flex items-center p-4 rounded-2xl transition-all', currentTab === tab.id ? 'bg-blue-600 shadow-lg scale-105' : 'hover:bg-blue-800']">
                         <i :class="['fas mr-4 w-5', tab.icon]"></i> {{ tab.name }}
                     </button>
                 </nav>
-                <div class="p-6 text-xs text-blue-400 text-center">Version 1.0.0 (FastAPI + Vue3)</div>
             </aside>
 
             <div class="flex-1 flex flex-col">
                 <header class="h-20 bg-white shadow-sm flex items-center justify-between px-10 border-b border-slate-200">
-                    <h2 class="text-xl font-bold text-slate-600">{{ tabs.find(t=>t.id==currentTab).name }}</h2>
+                    <h2 class="text-xl font-bold text-slate-600">{{ visibleTabs.find(t=>t.id==currentTab).name }}</h2>
                     <div class="flex items-center gap-4">
                         <div class="text-right">
                             <p class="font-bold text-blue-600">{{ user.username }}</p>
@@ -111,9 +110,12 @@
                             <div class="flex justify-between mb-4"><span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-bold">{{currentSubject}}</span></div>
                             <p class="text-lg font-bold text-slate-700 leading-relaxed mb-6">{{idx+1}}. {{ q.content }}</p>
                             <div class="grid grid-cols-2 gap-4">
-                                <button v-for="opt in ['A','B','C','D']" @click="submitAnswer(q.id, opt)"
-                                    class="text-left px-6 py-4 border rounded-2xl hover:bg-blue-50 hover:border-blue-400 transition-all font-medium">
+                                <button v-for="opt in ['A','B','C','D']"
+                                        @click="submitAnswer(q.id, opt)"
+                                        class="text-left px-6 py-4 border rounded-2xl hover:bg-blue-50 hover:border-blue-400 transition-all font-medium group">
                                     <span class="text-blue-600 mr-3 font-black text-lg">{{opt}}</span>
+
+                                    <span class="text-slate-600">{{ parseOptions(q.options)[opt] }}</span>
                                 </button>
                             </div>
                         </div>
@@ -185,7 +187,18 @@
                         </div>
                     </div>
 
+                    <div v-if="currentTab === 'admin'" class="space-y-6">
+                        <div class="flex gap-4 border-b border-slate-200 pb-4">
+                            <button @click="adminSubTab = 'questions'" :class="adminSubTab === 'questions' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400'">题库管理</button>
+                            <button @click="adminSubTab = 'courses'" :class="adminSubTab === 'courses' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400'">课程管理</button>
+                            <button @click="adminSubTab = 'users'" :class="adminSubTab === 'users' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400'">用户管理</button>
+                            <button @click="adminSubTab = 'stats'" :class="adminSubTab === 'stats' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400'">数据统计</button>
+                        </div>
 
+                        <div v-if="adminSubTab === 'questions'"> ... </div>
+                        <div v-if="adminSubTab === 'courses'"> ... </div>
+                        ...
+                    </div>
                 </main>
             </div>
         </template>
@@ -199,6 +212,7 @@
             data() {
                 return {
                     isLoginMode: true,
+                    adminSubTab: 'questions',
                     token: localStorage.getItem('token') || '',
                     user: { username: localStorage.getItem('username') || '未登录' , grade: localStorage.getItem('grade') || '', avatar: localStorage.getItem('avatar') || ''},
                     form: { username: '', password: '', grade: '初一' , avatar: ''},
@@ -215,6 +229,17 @@
                 }
             },
             mounted() { if(this.token) { this.syncData(); } },
+            computed: {
+                visibleTabs() {
+                    if (this.user.username === 'admin') {
+                        return [
+                            ...this.tabs,
+                            { id: 'admin', name: '系统管理', icon: 'fa-user-shield' }
+                        ];
+                    }
+                    return this.tabs;
+                }
+            },
             methods: {
                 async handleAuth() {
 
@@ -234,10 +259,12 @@
                             this.token = res.data.access_token;
                             this.user.username = res.data.username;
                             this.user.grade = res.data.grade;
+                            this.user.avatar = res.data.avatar;
 
                             localStorage.setItem('token', this.token);
                             localStorage.setItem('username', this.user.username);
                             localStorage.setItem('grade', this.user.grade);
+                            localStorage.setItem('avatar', this.user.avatar || '');
 
                             this.syncData();
                         } catch(e) {
@@ -289,6 +316,15 @@
                         this.form.avatar = e.target.result;
                     };
                     reader.readAsDataURL(file);
+                },
+                parseOptions(optionsStr) {
+                    try {
+                        // 将后端传来的字符串解析为 JS 对象
+                        return JSON.parse(optionsStr);
+                    } catch (e) {
+                        // 如果题目没有选项（比如填空题），返回空对象防止报错
+                        return {};
+                    }
                 },
                 async updateProfile() {
                         const updateData = { grade: this.user.grade };
