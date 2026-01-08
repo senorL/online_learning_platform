@@ -14,7 +14,7 @@ from starlette.middleware.cors import CORSMiddleware
 # 导入本地模块
 from . import models, schemas, database
 
-app = FastAPI(title="中小学生在线学习平台 API [终极修复版]")
+app = FastAPI(title="中学生在线学习平台")
 
 # 必须在接口之前配置跨域，否则前端无法访问
 app.add_middleware(
@@ -148,8 +148,23 @@ def login(credentials: schemas.UserCreate, db: Session = Depends(get_db)):
     if not db_user or not pwd_context.verify(credentials.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="用户名或密码错误")
     token = create_access_token(data={"sub": db_user.username, "role": db_user.role, "id": db_user.id})
-    return {"access_token": token, "token_type": "bearer", "role": db_user.role, "username": db_user.username}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "role": db_user.role,
+        "username": db_user.username,
+        "grade": db_user.grade
+    }
 
+@app.put("/my/profile")
+def update_profile(new_data: dict, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # 1. 修改个人信息
+    current_user.grade = new_data.get("grade")
+    current_user.hashed_password = pwd_context.hash(new_data.get("password")) if new_data.get("password") else current_user.hashed_password
+    current_user.avatar = new_data.get("avatar")
+    # 2. 存入数据库
+    db.commit()
+    return {"message": "更新成功", "grade": current_user.grade, "username": current_user.username, "avatar": current_user.avatar}
 
 @app.get("/courses/{subject}", tags=["课程"])
 def get_courses(subject: str, db: Session = Depends(get_db)):

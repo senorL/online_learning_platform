@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>初等教育智能辅助平台</title>
+    <title>中学生在线学习平台</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,18 +14,52 @@
         <div v-if="!token" class="fixed inset-0 z-50 flex items-center justify-center bg-blue-600">
             <div class="bg-white p-10 rounded-3xl shadow-2xl w-96 transform transition-all hover:scale-105">
                 <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold text-blue-700">在线学习平台</h2>
+                    <h2 class="text-3xl font-bold text-blue-700">
+                        {{ isLoginMode ? '在线学习平台' : '新用户注册'}}
+                    </h2>
                     <p class="text-slate-400 mt-2 italic">学-练-测-改 闭环系统</p>
                 </div>
                 <div class="space-y-4">
                     <div class="relative"><i class="fas fa-user absolute left-3 top-3.5 text-slate-300"></i>
-                        <input v-model="form.username" placeholder="用户名" class="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                        <input
+                                v-model="form.username"
+                                placeholder="用户名"
+                                class="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                :class="{ 'border-red-500': form.username.length < 2 && form.username.length > 0 }"
+                        >
+                        <p v-if="form.username.length > 0 && form.username.length < 2" class="text-red-500 text-xs mt-1">用户名至少2个字符</p>
                     </div>
+
+                    <div v-if="!isLoginMode" class="relative">
+                        <i class="fas fa-graduation-cap absolute left-3 top-3.5 text-slate-300"></i>
+                        <select v-model="form.grade" class="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none appearance-none bg-white">
+                            <option value="" disabled>请选择年级</option>
+                            <option value="初一">初一</option>
+                            <option value="初二">初二</option>
+                            <option value="初三">初三</option>
+                        </select>
+                    </div>
+
                     <div class="relative"><i class="fas fa-lock absolute left-3 top-3.5 text-slate-300"></i>
-                        <input v-model="form.password" type="password" placeholder="密码" class="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                        <input
+                                v-model="form.password"
+                                type="password"
+                                placeholder="密码"
+                                class="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                :class="{ 'border-red-500': form.password.length < 6 && form.password.length > 0 }"
+                        >
+                        <p v-if="form.password.length > 0 && form.password.length < 6" class="text-red-500 text-xs mt-1">密码至少6个字符</p>
                     </div>
-                    <button @click="login" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg">登录系统</button>
-                    <p class="text-xs text-slate-400 text-center mt-4">默认超管：admin / admin123</p>
+
+                    <button @click="handleAuth" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg">
+                        {{ isLoginMode ? '登录系统' : '立即注册' }}
+                    </button>
+
+                    <div class="text-center mt-4">
+                        <a @click="isLoginMode = !isLoginMode" class="text-sm text-blue-600 cursor-pointer hover:underline">
+                            {{ isLoginMode ? '没有账号？去注册' : '已有账号？去登录' }}
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -48,10 +82,11 @@
                     <div class="flex items-center gap-4">
                         <div class="text-right">
                             <p class="font-bold text-blue-600">{{ user.username }}</p>
-                            <p class="text-xs text-slate-400">初中部 · 学生</p>
+                            <p class="text-xs text-slate-400">{{user.grade}}</p>
                         </div>
-                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black border-2 border-blue-500 shadow-inner">
-                            {{ user.username.charAt(0).toUpperCase() }}
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black border-2 border-blue-500 shadow-inner overflow-hidden">
+                            <img v-if="user.avatar" :src="user.avatar" class="w-full h-full object-cover">
+                            <span v-else>{{ user.username.charAt(0).toUpperCase() }}</span>
                         </div>
                         <button @click="logout" class="ml-4 text-slate-300 hover:text-red-500"><i class="fas fa-power-off"></i></button>
                     </div>
@@ -102,6 +137,55 @@
                         </div>
                         <p class="mt-8 text-slate-400 italic">颜色越深代表当日做题量越多，继续保持！</p>
                     </div>
+
+                    <div v-if="currentTab === 'profile'" class="max-w-md mx-auto">
+                        <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+                            <h3 class="text-2xl font-bold text-slate-700 mb-6 flex items-center">
+                                <i class="fas fa-id-card text-blue-500 mr-3"></i> 账号信息设置
+                            </h3>
+
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-500 mb-2">用户名</label>
+                                    <div class="bg-slate-50 px-4 py-3 rounded-xl text-slate-400 border border-slate-100">
+                                        {{ user.username }} (不可修改)
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-500 mb-2">所属年级</label>
+                                    <select v-model="user.grade" class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white">
+                                        <option value="初一">初一</option>
+                                        <option value="初二">初二</option>
+                                        <option value="初三">初三</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-500 mb-2">新密码</label>
+                                    <input v-model="form.password" type="password" placeholder="留空则不修改密码"
+                                        class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-500 mb-2">上传头像</label>
+                                    <div class="flex items-center gap-4">
+                                        <label class="cursor-pointer bg-slate-100 px-4 py-2 rounded-xl border-2 border-dashed border-slate-300 hover:border-blue-400 text-slate-500 text-sm">
+                                            <i class="fas fa-camera mr-2"></i>选择图片
+                                            <input type="file" class="hidden" @change="handleFileUpload" accept="image/*">
+                                        </label>
+                                        <img v-if="form.avatar" :src="form.avatar" class="w-12 h-12 rounded-full object-cover border-2 border-blue-500">
+                                    </div>
+                                </div>
+
+                                <button @click="updateProfile" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg transition-all active:scale-95">
+                                    保存修改
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+
                 </main>
             </div>
         </template>
@@ -114,9 +198,10 @@
         createApp({
             data() {
                 return {
+                    isLoginMode: true,
                     token: localStorage.getItem('token') || '',
-                    user: { username: localStorage.getItem('username') || '未登录' },
-                    form: { username: '', password: '' },
+                    user: { username: localStorage.getItem('username') || '未登录' , grade: localStorage.getItem('grade') || '', avatar: localStorage.getItem('avatar') || ''},
+                    form: { username: '', password: '', grade: '初一' , avatar: ''},
                     currentTab: 'course', currentSubject: '数学', videoUrl: '',
                     questions: [], heatmap: {}, mistakes: [],
                     subjects: ['数学', '物理', '生物', '语文', '英语', '地理', '道法', '化学'],
@@ -124,21 +209,60 @@
                         { id: 'course', name: '课程学习', icon: 'fa-tv' },
                         { id: 'test', name: '刷题挑战', icon: 'fa-keyboard' },
                         { id: 'wrong', name: '错题收纳', icon: 'fa-folder-open' },
-                        { id: 'heatmap', name: '成就勋章', icon: 'fa-medal' }
+                        { id: 'heatmap', name: '成就勋章', icon: 'fa-medal' },
+                        { id: 'profile', name: '个人资料', icon: 'fa-user' }
                     ]
                 }
             },
             mounted() { if(this.token) { this.syncData(); } },
             methods: {
-                async login() {
-                    try {
-                        const res = await axios.post(`${API}/login`, this.form);
-                        this.token = res.data.access_token;
-                        this.user.username = res.data.username;
-                        localStorage.setItem('token', this.token);
-                        localStorage.setItem('username', this.user.username);
-                        this.syncData();
-                    } catch(e) { alert("身份校验失败，请检查账号密码"); }
+                async handleAuth() {
+
+                    if (!this.form.username || this.form.username.length < 2) {
+                        alert("用户名至少2个字符！");
+                        return; // 这里是关键：中止函数执行
+                    }
+                    if (!this.form.password || this.form.password.length < 6) {
+                        alert("密码至少6位！");
+                        return;
+                    }
+                    // 1. 判断当前是登录还是注册
+                    if (this.isLoginMode) {
+                        // 执行登录逻辑 (这里复用你原有的代码)
+                        try {
+                            const res = await axios.post(`${API}/login`, this.form);
+                            this.token = res.data.access_token;
+                            this.user.username = res.data.username;
+                            this.user.grade = res.data.grade;
+
+                            localStorage.setItem('token', this.token);
+                            localStorage.setItem('username', this.user.username);
+                            localStorage.setItem('grade', this.user.grade);
+
+                            this.syncData();
+                        } catch(e) {
+                            alert("登录失败：请检查账号密码");
+                        }
+                    } else {
+                        // 2. 执行注册逻辑
+                        try {
+                            // 调用后端的注册接口
+                            const res = await axios.post(`${API}/register`, this.form);
+
+                            // 注册成功后的处理
+                            alert("恭喜你，注册成功！请登录");
+
+                            // 自动把模式切回“登录”，让用户输入刚才注册的账号
+                            this.isLoginMode = true;
+
+                            // 可选：清空密码框，增加安全性
+                            this.form.password = '';
+                        } catch(e) {
+                            // 如果后端报错（比如用户名已存在），捕获并提示
+                            const errorMsg = e.response?.data?.detail || "注册失败，请换个用户名试试";
+                            alert(errorMsg);
+                        }
+                    }
                 },
                 logout() { localStorage.clear(); location.reload(); },
                 async syncData() {
@@ -149,6 +273,45 @@
                         this.changeSubject(this.currentSubject);
                     } catch(e) { this.logout(); }
                 },
+                handleFileUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    // 限制文件大小（比如不超过 1MB，防止数据库过大）
+                    if (file.size > 1024 * 1024) {
+                        alert("图片太大了，请上传 1MB 以内的图片");
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        // e.target.result 就是转换后的 Base64 字符串
+                        this.form.avatar = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                },
+                async updateProfile() {
+                        const updateData = { grade: this.user.grade };
+                        if(this.form.password) updateData.password = this.form.password;
+
+                        // 发送头像 Base64 字符串
+                        if(this.form.avatar) updateData.avatar = this.form.avatar;
+
+                        try {
+                            await axios.put(`${API}/my/profile`, updateData);
+                            alert("资料更新成功！");
+
+                            // 重要：更新当前显示的头像并同步到本地存储
+                            if(this.form.avatar) {
+                                this.user.avatar = this.form.avatar;
+                                localStorage.setItem('avatar', this.form.avatar);
+                            }
+                            localStorage.setItem('grade', this.user.grade);
+                            this.form.password = '';
+                        } catch(e) {
+                            alert("更新失败");
+                        }
+                    },
                 async changeSubject(s) {
                     this.currentSubject = s;
                     const cRes = await axios.get(`${API}/courses/${s}`); this.videoUrl = cRes.data[0]?.video_url;
