@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.question import Question
 from app.models.study import StudyRecord
-from app.models.course import Course, Chapter, Video
+from app.models.course import Course, Chapter
 
 
 def get_users(db: Session, keyword: Optional[str] = None, role: Optional[str] = None,
@@ -109,7 +109,7 @@ def get_chapters(
             "course_name": ch.course.name if ch.course else "",
             "course_subject": ch.course.subject if ch.course else "",
             "course_grade": ch.course.grade if ch.course else "",
-            "video_count": len(ch.videos) if ch.videos else 0,
+            "video_count": 0,
         })
 
     return {"items": items, "total": total, "page": page, "page_size": page_size}

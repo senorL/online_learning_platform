@@ -8,9 +8,9 @@ from app.core.deps import get_db
 from app.core.config import success_response
 from app.core.security import require_role
 from app.models.user import User
-from app.models.course import Chapter, Video
+from app.models.course import Chapter
 from app.schemas.user import UserAdminUpdate, UserOut
-from app.schemas.course import ChapterOut, ChapterUpdate, VideoCreate, VideoOut
+from app.schemas.course import ChapterOut, ChapterUpdate
 from app.services import admin_service
 from app.services import course_service
 
@@ -120,13 +120,4 @@ def delete_chapter(
     return success_response(message="章节已删除")
 
 
-@router.post("/chapters/{chapter_id}/videos")
-def add_video_to_chapter(
-    chapter_id: int,
-    video_in: VideoCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin", "teacher")),
-) -> dict:
-    """为章节添加视频。"""
-    video = course_service.create_video(db, chapter_id, video_in)
-    return success_response(data=VideoOut.model_validate(video).model_dump(), message="视频已添加")
+

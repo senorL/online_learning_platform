@@ -8,12 +8,12 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.database import engine, SessionLocal
 from app.models import (
-    User, Course, Chapter, Video, Question,
-    Enrollment, WrongQuestion, StudyRecord, StudyProgress,
+    User, Course, Chapter, Question,
+    Enrollment, WrongQuestion, StudyRecord, UserProcess,
 )
 from app.database import Base
 from app.core.security import hash_password
-from app.routers import auth, users, courses, questions, wrong_questions, ranking, admin
+from app.routers import auth, users, courses, questions, wrong_questions, ranking, admin, process
 
 # ---- 创建 FastAPI 应用 ----
 app = FastAPI(
@@ -38,6 +38,7 @@ app.include_router(questions.router)
 app.include_router(wrong_questions.router)
 app.include_router(ranking.router)
 app.include_router(admin.router)
+app.include_router(process.router)
 
 # ---- 自动创建数据库表 ----
 Base.metadata.create_all(bind=engine)

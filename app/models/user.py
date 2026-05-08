@@ -22,4 +22,4 @@ class User(Base):
     enrollments = relationship("Enrollment", back_populates="user", cascade="all, delete-orphan")
     wrong_questions = relationship("WrongQuestion", back_populates="user", cascade="all, delete-orphan")
     study_records = relationship("StudyRecord", back_populates="user", cascade="all, delete-orphan")
-    study_progresses = relationship("StudyProgress", back_populates="user", cascade="all, delete-orphan")
+    user_processes = relationship("UserProcess", back_populates="user", cascade="all, delete-orphan")

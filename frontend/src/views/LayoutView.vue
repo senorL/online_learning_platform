@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onErrorCaptured, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { getLatestProcess } from '../api/process'
 
 const router = useRouter()
 const route = useRoute()
@@ -70,8 +71,31 @@ const applyTheme = () => {
 
 const logout = () => { localStorage.clear(); router.push('/login') }
 
-onMounted(() => {
+// 全局进度提醒
+const latestProcess = ref<any>(null)
+const showGlobalBanner = ref(false)
+
+const jumpToCourse = () => {
+  showGlobalBanner.value = false
+  router.push('/courses')
+}
+
+onMounted(async () => {
   applyTheme()
+  if (role.value !== 'admin') {
+    try {
+      const res = await getLatestProcess()
+      if (res.data.code === 200 && res.data.data) {
+        latestProcess.value = res.data.data
+        // 只在非课程页时显示全局横幅（课程页有自己的横幅）
+        if (!route.path.startsWith('/courses')) {
+          showGlobalBanner.value = true
+        }
+      }
+    } catch (e) {
+      console.error('Failed to get latest process')
+    }
+  }
 })
 </script>
 
@@ -114,9 +138,115 @@ onMounted(() => {
           </button>
         </div>
       </header>
+      
+      <!-- 全局进度提醒横幅（非课程页时显示） -->
+      <div v-if="showGlobalBanner && latestProcess" class="global-process-banner">
+        <div class="gpb-icon">
+          <i class="fas fa-lightbulb"></i>
+        </div>
+        <div class="gpb-text">
+          <span>继续上次的学习：</span>
+          <strong>{{ latestProcess.subject }}</strong>
+          <span> · </span>
+          <span>{{ latestProcess.chapter }}</span>
+          <span class="gpb-time">（{{ latestProcess.minute }}分{{ latestProcess.second }}秒）</span>
+        </div>
+        <button class="gpb-btn" @click="jumpToCourse">
+          <i class="fas fa-arrow-right"></i> 前往课程
+        </button>
+        <button class="gpb-close" @click="showGlobalBanner = false">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
       <main class="app-content">
         <router-view />
       </main>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 全局进度提醒横幅 */
+.global-process-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, rgba(51, 112, 255, 0.15), rgba(20, 201, 201, 0.08));
+  border-bottom: 1px solid rgba(51, 112, 255, 0.2);
+  animation: gpbSlideDown 0.35s ease-out;
+}
+
+@keyframes gpbSlideDown {
+  from { opacity: 0; transform: translateY(-100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.gpb-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.gpb-text {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.gpb-text strong {
+  color: var(--primary);
+}
+
+.gpb-time {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.gpb-btn {
+  flex-shrink: 0;
+  padding: 6px 16px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.gpb-btn:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 2px 8px rgba(51, 112, 255, 0.3);
+}
+
+.gpb-close {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: all 0.2s;
+}
+
+.gpb-close:hover {
+  background: var(--hover-bg);
+  color: var(--text);
+}
+</style>

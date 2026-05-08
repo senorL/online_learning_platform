@@ -4,8 +4,8 @@ from typing import Optional, List
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-from app.models.course import Course, Chapter, Video
-from app.schemas.course import CourseCreate, CourseUpdate, ChapterCreate, ChapterUpdate, VideoCreate, VideoUpdate
+from app.models.course import Course, Chapter
+from app.schemas.course import CourseCreate, CourseUpdate, ChapterCreate, ChapterUpdate
 
 
 def get_courses(
@@ -135,35 +135,4 @@ def delete_chapter(db: Session, chapter_id: int) -> None:
     db.commit()
 
 
-# ---- 视频 ----
-def create_video(db: Session, chapter_id: int, video_in: VideoCreate) -> Video:
-    """为章节创建视频。"""
-    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
-    if not chapter:
-        raise HTTPException(status_code=404, detail="章节不存在")
-    video = Video(chapter_id=chapter_id, **video_in.model_dump())
-    db.add(video)
-    db.commit()
-    db.refresh(video)
-    return video
 
-
-def update_video(db: Session, video_id: int, video_in: VideoUpdate) -> Video:
-    """更新视频。"""
-    video = db.query(Video).filter(Video.id == video_id).first()
-    if not video:
-        raise HTTPException(status_code=404, detail="视频不存在")
-    for key, value in video_in.model_dump(exclude_unset=True).items():
-        setattr(video, key, value)
-    db.commit()
-    db.refresh(video)
-    return video
-
-
-def delete_video(db: Session, video_id: int) -> None:
-    """删除视频。"""
-    video = db.query(Video).filter(Video.id == video_id).first()
-    if not video:
-        raise HTTPException(status_code=404, detail="视频不存在")
-    db.delete(video)
-    db.commit()

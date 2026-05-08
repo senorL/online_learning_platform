@@ -91,6 +91,17 @@
                     </div>
                 </header>
 
+                <div v-if="showProcessBanner && latestProcess" class="bg-blue-50 border-l-4 border-blue-500 p-4 mx-10 mt-6 flex justify-between items-center rounded shadow-sm">
+                    <div>
+                        <i class="fas fa-history text-blue-500 mr-2"></i>
+                        <span class="text-slate-700">上次学到：<strong class="text-blue-600">{{ latestProcess.subject }}</strong> - {{ latestProcess.chapter }} 的 {{ latestProcess.minute }}分 {{ latestProcess.second }}秒</span>
+                    </div>
+                    <div class="space-x-3">
+                        <button @click="jumpToProcess" class="text-blue-600 hover:text-blue-800 text-sm font-bold">继续学习 <i class="fas fa-arrow-right"></i></button>
+                        <button @click="showProcessBanner = false" class="text-slate-400 hover:text-slate-600 text-sm"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+
                 <main class="flex-1 overflow-y-auto p-10 bg-slate-50">
 
                     <div v-if="currentTab === 'course'" class="space-y-8">
@@ -100,8 +111,24 @@
                                 {{s}}
                             </button>
                         </div>
-                        <div v-if="videoUrl" class="bg-white p-6 rounded-3xl shadow-xl aspect-video border border-slate-100 overflow-hidden">
-                            <iframe :src="videoUrl" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>
+                        <div v-if="videoUrl" class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+                            <div class="aspect-video w-full">
+                                <iframe :src="videoUrl" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>
+                            </div>
+                            <!-- 记录进度组件 -->
+                            <div class="mt-6 p-4 bg-slate-50 rounded-xl flex items-center gap-4">
+                                <div class="font-bold text-slate-700 flex items-center">
+                                    <i class="fas fa-bookmark text-blue-500 mr-2"></i>记录当前进度
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" v-model="processMinute" min="0" class="w-16 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 text-center" placeholder="分">
+                                    <span class="text-slate-500">分</span>
+                                    <input type="number" v-model="processSecond" min="0" max="59" class="w-16 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 text-center" placeholder="秒">
+                                    <span class="text-slate-500">秒</span>
+                                </div>
+                                <button @click="saveProcess" class="ml-4 bg-blue-100 text-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-200 transition-all">保存</button>
+                                <span v-if="processMessage" class="text-sm font-medium ml-4 transition-all" :class="processMessage.includes('❌') ? 'text-red-500' : 'text-green-500'">{{ processMessage }}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -236,6 +263,7 @@
                     user: { username: localStorage.getItem('username') || '未登录' , grade: localStorage.getItem('grade') || '', avatar: localStorage.getItem('avatar') || ''},
                     form: { username: '', password: '', grade: '初一' , avatar: ''},
                     currentTab: 'course', currentSubject: '数学', videoUrl: '',
+                    processMinute: 0, processSecond: 0, processMessage: '', latestProcess: null, showProcessBanner: false,
                     questions: [], heatmap: {}, mistakes: [],
                     subjects: ['数学', '物理', '生物', '语文', '英语', '地理', '道法', '化学'],
                     tabs: [
@@ -317,6 +345,7 @@
                         const hRes = await axios.get(`${API}/my/heatmap`); this.heatmap = hRes.data;
                         const mRes = await axios.get(`${API}/my/mistakes`); this.mistakes = mRes.data;
                         this.changeSubject(this.currentSubject);
+                        this.loadLatestProcess();
                     } catch(e) { this.logout(); }
                 },
                 handleFileUpload(event) {
@@ -371,6 +400,41 @@
                     this.currentSubject = s;
                     const cRes = await axios.get(`${API}/courses/${s}`); this.videoUrl = cRes.data[0]?.video_url;
                     const qRes = await axios.get(`${API}/questions/${s}`); this.questions = qRes.data;
+                },
+                async loadLatestProcess() {
+                    try {
+                        const res = await axios.get(`${API}/api/process/latest`);
+                        if (res.data.code === 200 && res.data.data) {
+                            this.latestProcess = res.data.data;
+                            this.showProcessBanner = true;
+                        }
+                    } catch(e) {}
+                },
+                async saveProcess() {
+                    try {
+                        const res = await axios.post(`${API}/api/process/record`, {
+                            subject: this.currentSubject,
+                            chapter: '视频课程',
+                            minute: this.processMinute,
+                            second: this.processSecond
+                        });
+                        if (res.data.code === 200) {
+                            this.processMessage = '✅ 进度保存成功！';
+                            setTimeout(() => this.processMessage = '', 3000);
+                            this.loadLatestProcess();
+                        } else {
+                            this.processMessage = '❌ 保存失败';
+                        }
+                    } catch(e) {
+                        this.processMessage = '❌ 网络异常，保存失败';
+                    }
+                },
+                jumpToProcess() {
+                    if (this.latestProcess) {
+                        this.currentTab = 'course';
+                        this.changeSubject(this.latestProcess.subject);
+                        this.showProcessBanner = false;
+                    }
                 },
                 async submitAnswer(qid, ans) {
                     const res = await axios.post(`${API}/questions/submit`, { question_id: qid, user_answer: ans });

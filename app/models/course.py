@@ -36,22 +36,6 @@ class Chapter(Base):
 
     # 关联关系
     course = relationship("Course", back_populates="chapters")
-    videos = relationship("Video", back_populates="chapter", cascade="all, delete-orphan",
-                          order_by="Video.sort_order")
 
 
-class Video(Base):
-    """视频表，一个章节有多个视频。"""
 
-    __tablename__ = "videos"
-
-    id = Column(Integer, primary_key=True, index=True)
-    chapter_id = Column(Integer, ForeignKey("chapters.id"), nullable=False, index=True)
-    title = Column(String(200), nullable=False)
-    url = Column(String(500), nullable=False)
-    duration = Column(Integer, default=0)  # 时长（秒）
-    sort_order = Column(Integer, default=0)
-
-    # 关联关系
-    chapter = relationship("Chapter", back_populates="videos")
-    study_progresses = relationship("StudyProgress", back_populates="video")

@@ -4,33 +4,7 @@ from typing import Optional, List
 from pydantic import BaseModel
 
 
-class VideoCreate(BaseModel):
-    """创建视频请求。"""
-    title: str
-    url: str
-    duration: int = 0
-    sort_order: int = 0
 
-
-class VideoUpdate(BaseModel):
-    """更新视频请求。"""
-    title: Optional[str] = None
-    url: Optional[str] = None
-    duration: Optional[int] = None
-    sort_order: Optional[int] = None
-
-
-class VideoOut(BaseModel):
-    """视频响应。"""
-    id: int
-    chapter_id: int
-    title: str
-    url: str
-    duration: int
-    sort_order: int
-
-    class Config:
-        from_attributes = True
 
 
 class ChapterCreate(BaseModel):
@@ -51,7 +25,7 @@ class ChapterOut(BaseModel):
     course_id: int
     title: str
     sort_order: int
-    videos: List[VideoOut] = []
+    pass
 
     class Config:
         from_attributes = True

@@ -11,7 +11,6 @@ from app.models.user import User
 from app.schemas.course import (
     CourseCreate, CourseUpdate, CourseOut, CourseListOut,
     ChapterCreate, ChapterUpdate, ChapterOut,
-    VideoCreate, VideoUpdate, VideoOut,
 )
 from app.services import course_service
 
@@ -103,37 +102,3 @@ def delete_chapter(
     """删除章节。"""
     course_service.delete_chapter(db, chapter_id)
     return success_response(message="章节已删除")
-
-
-# ---- 视频 ----
-@router.post("/chapters/{chapter_id}/videos")
-def create_video(
-    chapter_id: int, video_in: VideoCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin", "teacher")),
-) -> dict:
-    """为章节创建视频。"""
-    video = course_service.create_video(db, chapter_id, video_in)
-    return success_response(data=VideoOut.model_validate(video).model_dump())
-
-
-@router.put("/videos/{video_id}")
-def update_video(
-    video_id: int, video_in: VideoUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin", "teacher")),
-) -> dict:
-    """更新视频。"""
-    video = course_service.update_video(db, video_id, video_in)
-    return success_response(data=VideoOut.model_validate(video).model_dump())
-
-
-@router.delete("/videos/{video_id}")
-def delete_video(
-    video_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin", "teacher")),
-) -> dict:
-    """删除视频。"""
-    course_service.delete_video(db, video_id)
-    return success_response(message="视频已删除")

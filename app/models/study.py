@@ -22,19 +22,18 @@ class StudyRecord(Base):
     user = relationship("User", back_populates="study_records")
 
 
-class StudyProgress(Base):
-    """视频学习进度记录。"""
+class UserProcess(Base):
+    """用户学习进度记录。"""
 
-    __tablename__ = "study_progress"
+    __tablename__ = "user_processes"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False, index=True)
-    progress_seconds = Column(Integer, default=0)  # 已观看秒数
-    total_seconds = Column(Integer, default=0)  # 视频总秒数
-    finished = Column(Boolean, default=False)
+    subject = Column(String(50), nullable=False)
+    chapter = Column(String(200), nullable=False)
+    minute = Column(Integer, default=0)
+    second = Column(Integer, default=0)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     # 关联关系
-    user = relationship("User", back_populates="study_progresses")
-    video = relationship("Video", back_populates="study_progresses")
+    user = relationship("User", back_populates="user_processes")
