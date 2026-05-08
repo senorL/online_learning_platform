@@ -21,8 +21,17 @@ api.interceptors.response.use(
     const status = error.response?.status
     const detail = error.response?.data?.detail || '请求失败'
     if (status === 401) {
-      localStorage.clear()
-      window.location.href = '/login'
+      localStorage.removeItem('token')
+      localStorage.removeItem('username')
+      localStorage.removeItem('role')
+      localStorage.removeItem('grade')
+      localStorage.removeItem('avatar')
+      
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      } else {
+        alert(detail || '用户名或密码错误')
+      }
     } else if (status === 403) {
       alert('没有权限执行此操作')
     } else if (status === 422) {

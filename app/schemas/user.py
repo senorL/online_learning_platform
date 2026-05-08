@@ -69,3 +69,19 @@ class UserAdminUpdate(BaseModel):
     role: Optional[str] = None
     is_active: Optional[bool] = None
     grade: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+
+    @field_validator("password")
+    @classmethod
+    def password_min_length(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and len(v) < MIN_PASSWORD_LENGTH:
+            raise ValueError(f"密码至少{MIN_PASSWORD_LENGTH}位")
+        return v
+
+    @field_validator("username")
+    @classmethod
+    def username_min_length(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and len(v) < MIN_USERNAME_LENGTH:
+            raise ValueError(f"用户名至少{MIN_USERNAME_LENGTH}个字符")
+        return v

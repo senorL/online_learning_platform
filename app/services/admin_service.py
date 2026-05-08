@@ -26,16 +26,41 @@ def get_users(db: Session, keyword: Optional[str] = None, role: Optional[str] = 
 
 def update_user_admin(db: Session, user_id: int, update_data: dict) -> User:
     """管理员修改用户信息。"""
+    from fastapi import HTTPException
+    from app.core.security import hash_password
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="用户不存在")
+
+    if "username" in update_data and update_data["username"]:
+        existing = db.query(User).filter(User.username == update_data["username"], User.id != user_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="用户名已被其他用户使用")
+
+    if "password" in update_data and update_data["password"]:
+        update_data["hashed_password"] = hash_password(update_data.pop("password"))
+    elif "password" in update_data:
+        update_data.pop("password")
+
     for key, value in update_data.items():
         if value is not None and hasattr(user, key):
             setattr(user, key, value)
     db.commit()
     db.refresh(user)
     return user
+
+
+def delete_user_admin(db: Session, user_id: int) -> None:
+    """管理员删除用户。"""
+    from fastapi import HTTPException
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    if user.role == "admin":
+        raise HTTPException(status_code=400, detail="不能删除管理员账号")
+    db.delete(user)
+    db.commit()
 
 
 def get_chapters(

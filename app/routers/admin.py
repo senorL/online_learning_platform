@@ -44,6 +44,17 @@ def update_user(
     return success_response(data=UserOut.model_validate(user).model_dump(), message="用户信息已更新")
 
 
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+) -> dict:
+    """删除用户。"""
+    admin_service.delete_user_admin(db, user_id)
+    return success_response(message="用户已删除")
+
+
 @router.get("/stats")
 def get_stats(
     db: Session = Depends(get_db),

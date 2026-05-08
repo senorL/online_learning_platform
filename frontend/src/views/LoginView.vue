@@ -48,7 +48,7 @@ const handleSubmit = async () => {
       <div class="form-group has-icon">
         <label>用户名</label>
         <i class="fas fa-user form-icon"></i>
-        <input v-model="form.username" class="form-input" placeholder="请输入用户名"
+        <input v-model.trim="form.username" class="form-input" placeholder="请输入用户名"
           :class="{ error: form.username.length > 0 && form.username.length < 2 }" />
         <p v-if="form.username.length > 0 && form.username.length < 2" class="form-error">用户名至少2个字符</p>
       </div>
@@ -65,7 +65,7 @@ const handleSubmit = async () => {
       <div class="form-group has-icon">
         <label>密码</label>
         <i class="fas fa-lock form-icon"></i>
-        <input v-model="form.password" type="password" class="form-input" placeholder="请输入密码"
+        <input v-model.trim="form.password" type="password" class="form-input" placeholder="请输入密码"
           :class="{ error: form.password.length > 0 && form.password.length < 6 }" />
         <p v-if="form.password.length > 0 && form.password.length < 6" class="form-error">密码至少6位</p>
       </div>

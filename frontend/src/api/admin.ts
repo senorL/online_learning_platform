@@ -2,6 +2,7 @@ import api from './index'
 
 export const getUsers = (params?: any) => api.get('/admin/users', { params })
 export const updateUser = (id: number, data: any) => api.put(`/admin/users/${id}`, data)
+export const deleteUser = (id: number) => api.delete(`/admin/users/${id}`)
 export const getStats = () => api.get('/admin/stats')
 
 // 章节管理

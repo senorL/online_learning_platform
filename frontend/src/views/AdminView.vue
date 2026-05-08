@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getUsers, updateUser, getStats, getChapters, updateChapter, deleteAdminChapter } from '../api/admin'
+import { getUsers, updateUser, deleteUser, getStats, getChapters, updateChapter, deleteAdminChapter } from '../api/admin'
 import { getQuestions, createQuestion, deleteQuestion, importQuestions } from '../api/questions'
 import { getCourses, createCourse, deleteCourse } from '../api/courses'
 
@@ -205,6 +205,39 @@ const toggleActive = async (u: any) => {
 
 const changeRole = async (u: any, role: string) => {
   await updateUser(u.id, { role })
+  loadUsers()
+}
+
+const handleDeleteUser = async (u: any) => {
+  if (u.role === 'admin') {
+    alert('不能删除管理员账号')
+    return
+  }
+  if (!confirm(`确定要永久删除用户 "${u.username}" 及其所有数据吗？此操作不可恢复！`)) return
+  await deleteUser(u.id)
+  loadUsers()
+}
+
+const editingUser = ref<any>(null)
+const editUserForm = ref({ username: '', password: '' })
+
+const startEditUser = (u: any) => {
+  editingUser.value = u
+  editUserForm.value = { username: u.username, password: '' }
+}
+
+const saveEditUser = async () => {
+  if (!editingUser.value) return
+  if (editUserForm.value.username.length < 2) return alert('用户名至少2个字符')
+  if (editUserForm.value.password && editUserForm.value.password.length < 6) return alert('密码至少6位')
+  
+  const payload: any = { username: editUserForm.value.username }
+  if (editUserForm.value.password) {
+    payload.password = editUserForm.value.password
+  }
+  
+  await updateUser(editingUser.value.id, payload)
+  editingUser.value = null
   loadUsers()
 }
 
@@ -488,6 +521,25 @@ onMounted(loadData)
         <button class="btn btn-primary btn-sm" @click="loadUsers"><i class="fas fa-search"></i></button>
       </div>
 
+      <!-- 编辑用户弹窗 -->
+      <div v-if="editingUser" class="modal-overlay" @click.self="editingUser = null">
+        <div class="modal-content" style="position:relative;">
+          <h3 style="margin-bottom:20px;font-weight:700;">修改用户信息</h3>
+          <div class="form-group">
+            <label>用户名</label>
+            <input v-model="editUserForm.username" class="form-input" placeholder="请输入新用户名" />
+          </div>
+          <div class="form-group">
+            <label>新密码</label>
+            <input v-model="editUserForm.password" type="password" class="form-input" placeholder="留空表示不修改密码" />
+          </div>
+          <div style="display:flex;gap:10px;margin-top:16px;">
+            <button class="btn btn-primary btn-sm" @click="saveEditUser"><i class="fas fa-save"></i> 保存</button>
+            <button class="btn btn-ghost btn-sm" @click="editingUser = null">取消</button>
+          </div>
+        </div>
+      </div>
+
       <table class="data-table">
         <thead>
           <tr><th>ID</th><th>用户名</th><th>角色</th><th>年级</th><th>状态</th><th>操作</th></tr>
@@ -497,8 +549,8 @@ onMounted(loadData)
             <td>{{ u.id }}</td>
             <td>{{ u.username }}</td>
             <td>
-              <span class="badge" :class="{'badge-admin': u.role==='admin', 'badge-teacher': u.role==='teacher', 'badge-student': u.role==='student'}">
-                {{ u.role === 'admin' ? '管理员' : (u.role === 'teacher' ? '教师' : '学生') }}
+              <span class="badge" :class="{'badge-admin': u.role==='admin', 'badge-student': u.role==='student'}">
+                {{ u.role === 'admin' ? '管理员' : '学生' }}
               </span>
             </td>
             <td>{{ u.grade || '-' }}</td>
@@ -508,15 +560,16 @@ onMounted(loadData)
               </span>
             </td>
             <td style="display:flex;gap:6px;">
+              <button class="btn btn-sm btn-ghost" @click="startEditUser(u)" title="编辑用户"><i class="fas fa-edit"></i></button>
               <button class="btn btn-sm btn-ghost" @click="toggleActive(u)">
                 {{ u.is_active ? '禁用' : '启用' }}
               </button>
               <select @change="changeRole(u, ($event.target as HTMLSelectElement).value)"
                 class="form-select" style="width:90px;padding:6px;">
                 <option value="student" :selected="u.role==='student'">学生</option>
-                <option value="teacher" :selected="u.role==='teacher'">教师</option>
                 <option value="admin" :selected="u.role==='admin'">管理员</option>
               </select>
+              <button class="btn btn-sm btn-danger" @click="handleDeleteUser(u)" title="删除用户"><i class="fas fa-trash"></i></button>
             </td>
           </tr>
         </tbody>
