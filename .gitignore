@@ -1,6 +1,44 @@
-.idea/
-__pycache__/
-app/__pycache__/
-*.pyc
-*.db
+# Python 虚拟环境
 .venv/
+
+# Python 编译缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 数据库文件
+*.db
+
+# 编辑器配置
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS 系统文件
+.DS_Store
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# 前端依赖和构建
+node_modules/
+dist/
+build/
+*.log
+
+# 日志文件
+*.log
+
+# 临时文件
+tmp/
+temp/
+
+# 测试报告
+htmlcov/
+.pytest_cache/
+.coverage
