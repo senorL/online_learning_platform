@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Spin } from '@kousum/semi-ui-vue'
 import { generateQuestions, submitAnswer } from '../api/questions'
 import catalogData from '../assets/catalog.json'
 
@@ -225,7 +224,7 @@ onMounted(() => {})
           <!-- Loading 状态 - 使用 Semi Design Spin -->
           <div v-if="isLoading" class="card loading-card">
             <div class="loading-container">
-              <Spin size="large" />
+              <i class="fas fa-spinner fa-spin" style="font-size:32px;color:var(--primary);"></i>
               <div class="loading-text">{{ loadingMessage }}</div>
               <div class="loading-sub">题目将根据章节知识点智能生成，确保内容准确</div>
             </div>
